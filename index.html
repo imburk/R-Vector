@@ -97,7 +97,7 @@ addEventListener('keyup',e=>keys[e.code]=false);
 addEventListener('blur',()=>{ if(game.state==='play')game.paused=true; for(const k in keys)keys[k]=false; });
 const kLeft =()=>keys.ArrowLeft||keys.KeyA, kRight=()=>keys.ArrowRight||keys.KeyD,
       kUp   =()=>keys.ArrowUp  ||keys.KeyW, kDown =()=>keys.ArrowDown ||keys.KeyS,
-      kFire =()=>keys.KeyZ||keys.Space, kForce=()=>keys.KeyX;
+      kFire =()=>keys.Space, kForce=()=>keys.KeyX;
 
 /* ============================== STATE ============================== */
 const game={state:'title',paused:false,score:0,hi:0,lives:3,loop:1,area:1,time:0,
@@ -303,10 +303,10 @@ function updateBoss(b,dt){
 
 /* ============================== UPDATE ============================== */
 function onPress(code){
-  if(game.state==='title'&&(code==='KeyZ'||code==='Space'||code==='Enter')){
+  if(game.state==='title'&&(code==='Space'||code==='Enter')){
     sfx.start(); reset(true); game.state='play'; return;
   }
-  if(game.state==='over'&&(code==='KeyZ'||code==='Space'||code==='Enter')){
+  if(game.state==='over'&&(code==='Space'||code==='Enter')){
     game.state='title'; return;
   }
   if(game.state!=='play')return;
@@ -345,18 +345,19 @@ function update(dt){
     if(!p.inv&&solid(p.x,p.y)){ killPlayer(); }
 
     /* ---- charging / firing ---- */
-    p.cool-=gdt;
-    if(kFire()&&p.cool<=0){
-      if(!p.charging){p.charging=true;startChargeSfx();p.cLv=0;}
+    if(kCharge()){ // Space held: charge the wave cannon
+      if(!p.charging){p.charging=true;startChargeSfx();p.cLv=0;p.charge=0;}
       p.charge=Math.min(3,p.charge+gdt*1.15);
       if(chargeOsc)chargeOsc.frequency.setTargetAtTime(80+p.charge*140,actx.currentTime,.06);
       const lv=Math.floor(p.charge);
       if(lv>p.cLv){p.cLv=lv;tone('triangle',300+lv*140,300+lv*140,.14,.12);}
-    }else if(p.charging){
-      stopChargeSfx();
-      if(p.charge>=1)fireWave(Math.floor(Math.min(3,p.charge)));
-      else if(p.cool<=0)fireBullet();
-      p.charging=false;p.charge=0;p.cLv=0;
+    }else{
+      if(p.charging){ // Space released: unleash the wave
+        stopChargeSfx();
+        if(p.charge>=1)fireWave(Math.floor(Math.min(3,p.charge)));
+        p.charging=false;p.charge=0;p.cLv=0;
+      }
+      if(p.cool<=0){fireBullet();p.cool=.18;} // constant autofire
     }
     /* ---- force pod ---- */
     if(forceAttached())forcePos();
@@ -730,9 +731,9 @@ function drawTitle(){
   ctx.fillText('A WAVE-CANNON TRIBUTE',W/2,H/2-44);
   ctx.font='14px Silkscreen, monospace';ctx.fillStyle='#e6fff6';
   const blink=Math.floor(game.time*2)%2===0;
-  if(blink)ctx.fillText('PRESS Z / SPACE TO LAUNCH',W/2,H/2+16);
+  if(blink)ctx.fillText('PRESS SPACE TO LAUNCH',W/2,H/2+16);
   ctx.font='10px Silkscreen, monospace';ctx.fillStyle='#2a5a4d';
-  ctx.fillText('ARROWS/WASD MOVE   Z/SPACE FIRE (HOLD TO CHARGE)',W/2,H/2+64);
+  ctx.fillText('ARROWS/WASD MOVE   SPACE HOLD TO CHARGE',W/2,H/2+64);
   ctx.fillText('X LAUNCH FORCE POD   P PAUSE   M SOUND',W/2,H/2+84);
   if(game.hi>0){ctx.fillStyle='#ffb08a';ctx.fillText('HI-SCORE '+game.hi,W/2,H/2+120);}
   ctx.textAlign='left';
